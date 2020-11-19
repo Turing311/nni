@@ -83,7 +83,7 @@ def get_model(args):
             ms.speedup_model()
 
     net.to(args.device)
-    if torch.cuda.is_available() and args.n_gpu > 1:
+    if torch.cuda.is_available() and args.n_gpu > 1 and False:
         net = torch.nn.DataParallel(net, list(range(args.n_gpu)))
     return net
 

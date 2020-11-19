@@ -66,15 +66,13 @@ def main():
                              transforms.Pad(4),
                              transforms.Resize(128),
                              transforms.RandomHorizontalFlip(),
-                             transforms.ToTensor(),
-                             transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010))
+                             transforms.ToTensor()
                          ])),
         batch_size=64, shuffle=True)
     test_loader = torch.utils.data.DataLoader(
         datasets.CIFAR10('./data.cifar10', train=False, transform=transforms.Compose([
             transforms.Resize(128),
-            transforms.ToTensor(),
-            transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010))
+            transforms.ToTensor()
         ])),
         batch_size=128, shuffle=False)
 

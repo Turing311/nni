@@ -129,6 +129,7 @@ class MfnModel(nn.Module):
         self.classifier = nn.Sequential(
             nn.Dropout(0.2),
             nn.Linear(256, n_class),
+            nn.Softmax()
         )
 
         for m in self.classifier.modules():

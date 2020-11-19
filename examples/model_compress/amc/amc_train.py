@@ -167,7 +167,7 @@ def test(epoch, test_loader, device, save=True):
             'state_dict': net.module.state_dict() if isinstance(net, nn.DataParallel) else net.state_dict(),
             'acc': top1.avg,
             'optimizer': optimizer.state_dict(),
-        }, is_best, checkpoint_dir=log_dir)
+        }, is_best, net, checkpoint_dir=log_dir)
 
 def adjust_learning_rate(optimizer, epoch):
     if args.lr_type == 'cos':  # cos without warm-up
@@ -185,12 +185,13 @@ def adjust_learning_rate(optimizer, epoch):
         param_group['lr'] = lr
     return lr
 
-def save_checkpoint(state, is_best, checkpoint_dir='.'):
+def save_checkpoint(state, is_best, model, checkpoint_dir='.'):
     filename = os.path.join(checkpoint_dir, 'ckpt.pth')
     print('=> Saving checkpoint to {}'.format(filename))
     torch.save(state, filename)
     if is_best:
         shutil.copyfile(filename, filename.replace('.pth', '.best.pth'))
+        torch.save(model, filename.replace('.pth', '.whole.pth'))
 
 if __name__ == '__main__':
     args = parse_args()

@@ -72,7 +72,7 @@ def get_model(args):
         net.fc = nn.Linear(in_features, n_class)
     elif args.model_type == 'mfn':
         net = MfnModel("../models/mfn.npy", n_class=n_class)
-        net.freeze()
+#        net.freeze()
     else:
         raise NotImplementedError
 
@@ -231,7 +231,7 @@ if __name__ == '__main__':
     criterion = nn.CrossEntropyLoss()
     print('Using SGD...')
     print('weight decay  = {}'.format(args.wd))
-    optimizer = optim.SGD(net.classifier.parameters(), lr=args.lr, momentum=0.9, weight_decay=args.wd)
+    optimizer = optim.SGD(net.parameters(), lr=args.lr, momentum=0.9, weight_decay=args.wd)
 
     if args.eval:  # just run eval
         print('=> Start evaluation...')

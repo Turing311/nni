@@ -6,8 +6,6 @@ from torchvision import datasets, transforms
 def train(model, device, train_loader, optimizer, sparse_bn=False):
     model.train()
     for batch_idx, (data, target) in enumerate(train_loader):
-        if batch_idx == 0:
-            print(data)
         data, target = data.to(device), target.to(device)
         optimizer.zero_grad()
         output = model(data)

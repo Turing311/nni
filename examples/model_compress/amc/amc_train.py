@@ -25,11 +25,12 @@ from utils import AverageMeter, accuracy, progress_bar
 sys.path.append('../models')
 from mobilenet import MobileNet
 from mobilenet_v2 import MobileNetV2
+from mfn import MfnModel
 
 def parse_args():
     parser = argparse.ArgumentParser(description='AMC train / fine-tune script')
-    parser.add_argument('--model_type', default='mobilenet', type=str,
-        choices=['mobilenet', 'mobilenetv2', 'resnet18', 'resnet34', 'resnet50'],
+    parser.add_argument('--model_type', default='mfn', type=str,
+        choices=['mobilenet', 'mobilenetv2', 'resnet18', 'resnet34', 'resnet50', 'mfn'],
         help='name of the model to train')
     parser.add_argument('--dataset', default='cifar10', type=str, help='name of the dataset to train')
     parser.add_argument('--lr', default=0.05, type=float, help='learning rate')
@@ -69,15 +70,19 @@ def get_model(args):
         net = resnet.__dict__[args.model_type](pretrained=True)
         in_features = net.fc.in_features
         net.fc = nn.Linear(in_features, n_class)
+    elif args.model_type == 'mfn':
+        net = MfnModel("../models/mfn.npy", n_class=n_class)
     else:
         raise NotImplementedError
 
-    if args.ckpt_path is not None:
+    if args.ckpt_path is not None and args.model_type is not 'mfn':
         # the checkpoint can be state_dict exported by amc_search.py or saved by amc_train.py
         print('=> Loading checkpoint {} ..'.format(args.ckpt_path))
         net.load_state_dict(torch.load(args.ckpt_path, torch.device('cpu')))
         if args.mask_path is not None:
             SZ = 224 if args.dataset == 'imagenet' else 32
+            if args.model_type == 'mfn':
+                SN = 128
             data = torch.randn(2, 3, SZ, SZ)
             ms = ModelSpeedup(net, data, args.mask_path, torch.device('cpu'))
             ms.speedup_model()
@@ -216,6 +221,8 @@ if __name__ == '__main__':
 
     if args.calc_flops:
         IMAGE_SIZE = 224 if args.dataset == 'imagenet' else 32
+        if args.model_type == 'mfn':
+            IMAGE_SIZE = 128
         n_flops, n_params = measure_model(net, IMAGE_SIZE, IMAGE_SIZE, args.device)
         print('=> Model Parameter: {:.3f} M, FLOPs: {:.3f}M'.format(n_params / 1e6, n_flops / 1e6))
         exit(0)
@@ -235,7 +242,7 @@ if __name__ == '__main__':
         log_dir = get_output_folder('./logs', '{}_{}_{}'.format(args.model_type, args.dataset, train_type))
         print('=> Saving logs to {}'.format(log_dir))
         # tf writer
-        writer = SummaryWriter(logdir=log_dir)
+        writer = SummaryWriter(log_dir=log_dir)
 
         for epoch in range(start_epoch, start_epoch + args.n_epoch):
             lr = adjust_learning_rate(optimizer, epoch)

@@ -72,10 +72,11 @@ def get_model(args):
         net.fc = nn.Linear(in_features, n_class)
     elif args.model_type == 'mfn':
         net = MfnModel("../models/mfn.npy", n_class=n_class)
+        net.freeze()
     else:
         raise NotImplementedError
 
-    if args.ckpt_path is not None and args.model_type is not 'mfn':
+    if args.ckpt_path is not None:
         # the checkpoint can be state_dict exported by amc_search.py or saved by amc_train.py
         print('=> Loading checkpoint {} ..'.format(args.ckpt_path))
         net.load_state_dict(torch.load(args.ckpt_path, torch.device('cpu')))
@@ -230,7 +231,7 @@ if __name__ == '__main__':
     criterion = nn.CrossEntropyLoss()
     print('Using SGD...')
     print('weight decay  = {}'.format(args.wd))
-    optimizer = optim.SGD(net.parameters(), lr=args.lr, momentum=0.9, weight_decay=args.wd)
+    optimizer = optim.SGD(net.classifier.parameters(), lr=args.lr, momentum=0.9, weight_decay=args.wd)
 
     if args.eval:  # just run eval
         print('=> Start evaluation...')

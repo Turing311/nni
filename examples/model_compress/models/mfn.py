@@ -128,14 +128,14 @@ class MfnModel(nn.Module):
 
         self.classifier = nn.Sequential(
             nn.Dropout(0.2),
-            nn.Linear(256, n_class),
+            nn.Linear(256, n_class, bias=False),
         )
 
         for m in self.classifier.modules():
             if isinstance(m, nn.Linear):
                 n = m.weight.size(1)
                 m.weight.data.normal_(0, 0.01)
-                m.bias.data.zero_()
+#                m.bias.data.zero_()
 
 
     def forward(self, x):

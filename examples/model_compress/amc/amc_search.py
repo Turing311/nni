@@ -13,12 +13,14 @@ from data import get_split_dataset
 from utils import AverageMeter, accuracy
 
 sys.path.append('../models')
+from mfn import MfnModel
+from datalmdb import DataLmdb
 
 def parse_args():
     parser = argparse.ArgumentParser(description='AMC search script')
-    parser.add_argument('--model_type', default='mobilenet', type=str, choices=['mobilenet', 'mobilenetv2', 'resnet18', 'resnet34', 'resnet50'],
+    parser.add_argument('--model_type', default='mfn', type=str, choices=['mobilenet', 'mobilenetv2', 'resnet18', 'resnet34', 'resnet50'],
         help='model to prune')
-    parser.add_argument('--dataset', default='cifar10', type=str, choices=['cifar10', 'imagenet'], help='dataset to use (cifar/imagenet)')
+    parser.add_argument('--dataset', default='mfn', type=str, choices=['cifar10', 'imagenet', 'mfn'], help='dataset to use (cifar/imagenet)')
     parser.add_argument('--batch_size', default=50, type=int, help='number of data batch size')
     parser.add_argument('--data_root', default='./data', type=str, help='dataset path')
     parser.add_argument('--flops_ratio', default=0.5, type=float, help='target flops ratio to preserve of the model')
@@ -39,6 +41,8 @@ def get_model_and_checkpoint(model, dataset, checkpoint_path, n_gpu=1):
         n_class = 1000
     elif dataset == 'cifar10':
         n_class = 10
+    elif dataset == 'mfn':
+        n_class = 797
     else:
         raise ValueError('unsupported dataset')
 
@@ -52,6 +56,9 @@ def get_model_and_checkpoint(model, dataset, checkpoint_path, n_gpu=1):
         net = resnet.__dict__[model](pretrained=True)
         in_features = net.fc.in_features
         net.fc = nn.Linear(in_features, n_class)
+    elif args.model_type == 'mfn':
+        net = MfnModel("../models/mfn.npy", n_class=n_class)
+        net = torch.load('mfn_org.pth')
     else:
         raise NotImplementedError
     if checkpoint_path:
@@ -73,13 +80,18 @@ def init_data(args):
     # split the train set into train + val
     # for CIFAR, split 5k for val
     # for ImageNet, split 3k for val
-    val_size = 5000 if 'cifar' in args.dataset else 3000
-    train_loader, val_loader, _ = get_split_dataset(
-        args.dataset, args.batch_size,
-        args.n_worker, val_size,
-        data_root=args.data_root,
-        shuffle=False
-    )  # same sampling
+#    val_size = 5000 if 'cifar' in args.dataset else 3000
+#    train_loader, val_loader, _ = get_split_dataset(
+#        args.dataset, args.batch_size,
+#        args.n_worker, val_size,
+#        data_root=args.data_root,
+#        shuffle=False
+#    )  # same sampling
+    train_loader = torch.utils.data.DataLoader(DataLmdb("F:\\Database\\Low_lmdb\\Train-Low_lmdb", db_size=143432, crop_size=128, flip=True, scale=0.00390625),
+		batch_size=32, shuffle=True)
+    val_loader = torch.utils.data.DataLoader(DataLmdb("F:\\Database\\Low_lmdb\\Valid-Low_lmdb", db_size=7939, crop_size=128, flip=False, scale=0.00390625, random=False),
+		batch_size=32, shuffle=False)
+    n_class = 797
     return train_loader, val_loader
 
 def validate(val_loader, model, verbose=False):
@@ -129,7 +141,7 @@ if __name__ == "__main__":
     _, val_loader = init_data(args)
 
     config_list = [{
-        'op_types': ['Conv2d', 'Linear']
+        'op_types': ['Conv2d']
     }]
     pruner = AMCPruner(
         model, config_list, validate, val_loader, model_type=args.model_type, dataset=args.dataset,

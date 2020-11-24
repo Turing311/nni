@@ -88,7 +88,7 @@ def init_data(args):
 #    )  # same sampling
 #    train_loader = torch.utils.data.DataLoader(DataLmdb("F:\\Database\\Low_lmdb\\Train-Low_lmdb", db_size=143432, crop_size=128, flip=True, scale=0.00390625),
 #		batch_size=32, shuffle=True)
-    val_loader = torch.utils.data.DataLoader(DataLmdb("/kaggle/working/nni/examples/model_compress/amc/Valid-DHLPC_lmdb", db_size=6831, crop_size=128, flip=False, scale=0.00390625, random=False),
+    val_loader = torch.utils.data.DataLoader(DataLmdb("/kaggle/working/nni/examples/model_compress/amc/Valid_DHLPC_lmdb", db_size=6831, crop_size=128, flip=False, scale=0.00390625, random=False),
 		batch_size=128, shuffle=False)
     return val_loader, val_loader
 
@@ -135,7 +135,7 @@ if __name__ == "__main__":
 
     device = torch.device('cuda') if torch.cuda.is_available() and args.n_gpu > 0 else torch.device('cpu')
 
-    model = get_model_and_checkpoint(args.model_type, args.dataset, checkpoint_path=args.ckpt_path, n_gpu=args.n_gpu)
+    model = get_model_and_checkpoint(args.model_type, args.dataset, checkpoint_path='../models/mfn_2510.pth', n_gpu=args.n_gpu)
     _, val_loader = init_data(args)
 
     config_list = [{

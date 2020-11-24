@@ -57,8 +57,8 @@ def get_model_and_checkpoint(model, dataset, checkpoint_path, n_gpu=1):
         in_features = net.fc.in_features
         net.fc = nn.Linear(in_features, n_class)
     elif args.model_type == 'mfn':
-        net = MfnModel("../models/mfn.npy", n_class=n_class)
-        net = torch.load('mfn_org.pth')
+        net = MfnModel()
+        net = torch.load('../models/mfn_2510.pth')
     else:
         raise NotImplementedError
     if checkpoint_path:
@@ -87,12 +87,11 @@ def init_data(args):
 #        data_root=args.data_root,
 #        shuffle=False
 #    )  # same sampling
-    train_loader = torch.utils.data.DataLoader(DataLmdb("F:\\Database\\Low_lmdb\\Train-Low_lmdb", db_size=143432, crop_size=128, flip=True, scale=0.00390625),
-		batch_size=32, shuffle=True)
-    val_loader = torch.utils.data.DataLoader(DataLmdb("F:\\Database\\Low_lmdb\\Valid-Low_lmdb", db_size=7939, crop_size=128, flip=False, scale=0.00390625, random=False),
-		batch_size=32, shuffle=False)
-    n_class = 797
-    return train_loader, val_loader
+#    train_loader = torch.utils.data.DataLoader(DataLmdb("F:\\Database\\Low_lmdb\\Train-Low_lmdb", db_size=143432, crop_size=128, flip=True, scale=0.00390625),
+#		batch_size=32, shuffle=True)
+    val_loader = torch.utils.data.DataLoader(DataLmdb("/kaggle/working/nni/examples/model_compress/amc/Valid-DHLPC_lmdb", db_size=6831, crop_size=128, flip=False, scale=0.00390625, random=False),
+		batch_size=128, shuffle=False)
+    return val_loader, val_loader
 
 def validate(val_loader, model, verbose=False):
     batch_time = AverageMeter()

@@ -20,10 +20,11 @@ def load_weights(weight_file):
 class MfnModel(nn.Module):
 
     
-    def __init__(self, weight_file, n_class=10):
+    def __init__(self):
         super(MfnModel, self).__init__()
-        global _weights_dict
-        _weights_dict = load_weights(weight_file)
+#        global _weights_dict, _weights_dict_fc
+#        _weights_dict = load_weights(weight_file)
+#        _weights_dict_fc = load_weights(fc_file)
 
         self.conv1 = self.__conv(2, name='conv1', in_channels=3, out_channels=64, kernel_size=(3, 3), stride=(2, 2), groups=1, bias=False)
         self.conv1_bn = self.__batch_normalization(2, 'conv1/bn', num_features=64, eps=9.999999747378752e-06, momentum=0.0)
@@ -125,32 +126,21 @@ class MfnModel(nn.Module):
         self.conv5_dw_bn = self.__batch_normalization(2, 'conv5_dw/bn', num_features=512, eps=9.999999747378752e-06, momentum=0.0)
         self.fc1_512_1 = self.__dense(name = 'fc1_512_1', in_features = 512, out_features = 512, bias = False)
         self.bn_fc1_512 = self.__batch_normalization(2, 'bn_fc1_512', num_features=512, eps=9.999999747378752e-06, momentum=0.0)
-
-        self.classifier = nn.Sequential(
-            nn.Dropout(0.2),
-            nn.Linear(256, n_class, bias=False),
-        )
-
-        for m in self.classifier.modules():
-            if isinstance(m, nn.Linear):
-                n = m.weight.size(1)
-                m.weight.data.normal_(0, 0.01)
-#                m.bias.data.zero_()
-
+        self.fc3_256_1 = self.__dense_fc(name = 'fc3_256_1', in_features = 256, out_features = 2510, bias = False)
 
     def forward(self, x):
         conv1_pad       = F.pad(x, (1, 1, 1, 1))
         conv1           = self.conv1(conv1_pad)
         conv1_bn        = self.conv1_bn(conv1)
-        relu__1         = F.relu(conv1_bn)
-        conv1_dw_pad    = F.pad(relu__1, (1, 1, 1, 1))
+        relu_1          = F.relu(conv1_bn)
+        conv1_dw_pad    = F.pad(relu_1, (1, 1, 1, 1))
         conv1_dw        = self.conv1_dw(conv1_dw_pad)
         conv1_dw_bn     = self.conv1_dw_bn(conv1_dw)
-        relu__1_dw      = F.relu(conv1_dw_bn)
-        conv2_ex        = self.conv2_ex(relu__1_dw)
+        relu_1_dw       = F.relu(conv1_dw_bn)
+        conv2_ex        = self.conv2_ex(relu_1_dw)
         conv2_ex_bn     = self.conv2_ex_bn(conv2_ex)
-        relu__2_ex      = F.relu(conv2_ex_bn)
-        conv2_dw_pad    = F.pad(relu__2_ex, (1, 1, 1, 1))
+        relu_2_ex       = F.relu(conv2_ex_bn)
+        conv2_dw_pad    = F.pad(relu_2_ex, (1, 1, 1, 1))
         conv2_dw        = self.conv2_dw(conv2_dw_pad)
         conv2_dw_bn     = self.conv2_dw_bn(conv2_dw)
         relu_2_dw       = F.relu(conv2_dw_bn)
@@ -306,37 +296,8 @@ class MfnModel(nn.Module):
         bn_fc1_512      = bn_fc1_512.reshape(bn_fc1_512.size()[0], bn_fc1_512.size()[1])
         slice_fc1, slice_fc2       = bn_fc1_512[:, :256], bn_fc1_512[:, 256:]
         eltwise_fc1 = torch.max(slice_fc1, slice_fc2)
-
-        out = self.classifier(eltwise_fc1)
+        out       = self.fc3_256_1(eltwise_fc1)
         return out
-
-    def freeze(self):
-        for name, p in self.named_parameters():
-            p.requires_grad = False
-
-        for name, p in self.classifier.named_parameters():
-            p.requires_grad = True
-
-    @staticmethod
-    def __batch_normalization(dim, name, **kwargs):
-        if   dim == 0 or dim == 1:  layer = nn.BatchNorm1d(**kwargs)
-        elif dim == 2:  layer = nn.BatchNorm2d(**kwargs)
-        elif dim == 3:  layer = nn.BatchNorm3d(**kwargs)
-        else:           raise NotImplementedError()
-
-        if 'scale' in _weights_dict[name]:
-            layer.state_dict()['weight'].copy_(torch.from_numpy(_weights_dict[name]['scale']))
-        else:
-            layer.weight.data.fill_(1)
-
-        if 'bias' in _weights_dict[name]:
-            layer.state_dict()['bias'].copy_(torch.from_numpy(_weights_dict[name]['bias']))
-        else:
-            layer.bias.data.fill_(0)
-
-        layer.state_dict()['running_mean'].copy_(torch.from_numpy(_weights_dict[name]['mean']))
-        layer.state_dict()['running_var'].copy_(torch.from_numpy(_weights_dict[name]['var']))
-        return layer
 
     @staticmethod
     def __conv(dim, name, **kwargs):
@@ -345,16 +306,47 @@ class MfnModel(nn.Module):
         elif dim == 3:  layer = nn.Conv3d(**kwargs)
         else:           raise NotImplementedError()
 
-        layer.state_dict()['weight'].copy_(torch.from_numpy(_weights_dict[name]['weights']))
-        if 'bias' in _weights_dict[name]:
-            layer.state_dict()['bias'].copy_(torch.from_numpy(_weights_dict[name]['bias']))
+#        layer.state_dict()['weight'].copy_(torch.from_numpy(_weights_dict[name]['weights']))
+#        if 'bias' in _weights_dict[name]:
+#            layer.state_dict()['bias'].copy_(torch.from_numpy(_weights_dict[name]['bias']))
+        return layer
+
+    @staticmethod
+    def __batch_normalization(dim, name, **kwargs):
+        if   dim == 0 or dim == 1:  layer = nn.BatchNorm1d(**kwargs)
+        elif dim == 2:  layer = nn.BatchNorm2d(**kwargs)
+        elif dim == 3:  layer = nn.BatchNorm3d(**kwargs)
+        else:           raise NotImplementedError()
+
+        layer.weight.data.fill_(1)
+        layer.bias.data.fill_(0)
+
+#        if 'scale' in _weights_dict[name]:
+#            layer.state_dict()['weight'].copy_(torch.from_numpy(_weights_dict[name]['scale']))
+#        else:
+#            layer.weight.data.fill_(1)
+
+#        if 'bias' in _weights_dict[name]:
+#            layer.state_dict()['bias'].copy_(torch.from_numpy(_weights_dict[name]['bias']))
+#        else:
+#            layer.bias.data.fill_(0)
+
+#        layer.state_dict()['running_mean'].copy_(torch.from_numpy(_weights_dict[name]['mean']))
+#        layer.state_dict()['running_var'].copy_(torch.from_numpy(_weights_dict[name]['var']))
         return layer
 
     @staticmethod
     def __dense(name, **kwargs):
         layer = nn.Linear(**kwargs)
-        layer.state_dict()['weight'].copy_(torch.from_numpy(_weights_dict[name]['weights']))
-        if 'bias' in _weights_dict[name]:
-            layer.state_dict()['bias'].copy_(torch.from_numpy(_weights_dict[name]['bias']))
+#        layer.state_dict()['weight'].copy_(torch.from_numpy(_weights_dict[name]['weights']))
+#        if 'bias' in _weights_dict[name]:
+#            layer.state_dict()['bias'].copy_(torch.from_numpy(_weights_dict[name]['bias']))
         return layer
 
+    @staticmethod
+    def __dense_fc(name, **kwargs):
+        layer = nn.Linear(**kwargs)
+#        layer.state_dict()['weight'].copy_(torch.from_numpy(_weights_dict_fc[name]['weights']))
+#        if 'bias' in _weights_dict_fc[name]:
+#            layer.state_dict()['bias'].copy_(torch.from_numpy(_weights_dict_fc[name]['bias']))
+        return layer

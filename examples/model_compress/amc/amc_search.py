@@ -42,7 +42,7 @@ def get_model_and_checkpoint(model, dataset, checkpoint_path, n_gpu=1):
     elif dataset == 'cifar10':
         n_class = 10
     elif dataset == 'mfn':
-        n_class = 797
+        n_class = 2510
     else:
         raise ValueError('unsupported dataset')
 
@@ -58,7 +58,7 @@ def get_model_and_checkpoint(model, dataset, checkpoint_path, n_gpu=1):
         net.fc = nn.Linear(in_features, n_class)
     elif args.model_type == 'mfn':
         net = MfnModel()
-        net = torch.load('../models/mfn_2510.pth')
+        net = torch.load('mfn_2510.pth')
     else:
         raise NotImplementedError
     if checkpoint_path:

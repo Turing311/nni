@@ -144,5 +144,5 @@ if __name__ == "__main__":
     pruner = AMCPruner(
         model, config_list, validate, val_loader, model_type=args.model_type, dataset=args.dataset,
         train_episode=args.train_episode, flops_ratio=args.flops_ratio, lbound=args.lbound,
-        rbound=args.rbound, suffix=args.suffix)
+        rbound=args.rbound, suffix=args.suffix, output_dir='../../')
     pruner.compress()

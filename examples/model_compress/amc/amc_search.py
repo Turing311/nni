@@ -89,7 +89,7 @@ def init_data(args):
 #    train_loader = torch.utils.data.DataLoader(DataLmdb("F:\\Database\\Low_lmdb\\Train-Low_lmdb", db_size=143432, crop_size=128, flip=True, scale=0.00390625),
 #		batch_size=32, shuffle=True)
     val_loader = torch.utils.data.DataLoader(DataLmdb("/kaggle/working/nni/examples/model_compress/amc/Valid_DHLPC_lmdb", db_size=6831, crop_size=128, flip=False, scale=0.00390625, random=False),
-		batch_size=128, shuffle=False)
+		batch_size=64, shuffle=False)
     return val_loader, val_loader
 
 def validate(val_loader, model, verbose=False):
